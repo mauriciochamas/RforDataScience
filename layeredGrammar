@@ -1,0 +1,50 @@
+car <- mtcars
+str(car)
+library(ggplot2)
+layer(aes(x = mpg, y = disp, z = cyl), geom = "line", stat = "smooth")
+str(diamonds)
+ggplot() + layer(data = diamonds, mapping = aes(carat, price), 
+                 geom = "point", stat = "identity", position = "identity") + 
+  scale_y_continuous() + scale_x_continuous() + coord_cartesian()
+ggplot(diamonds, aes(carat, price)) + geom_point()
+ggplot(diamonds, aes(carat, price)) + geom_point() + 
+  stat_smooth(method = lm) + scale_x_log10() + scale_y_log10()
+ggplot(diamonds, aes(log(carat), log(price))) + geom_point() + 
+  stat_smooth(method = lm)
+qplot(carat, price, data = diamonds)
+qplot(carat, price, data = diamonds, geom = c("point", "smooth"), 
+      method = "lm", log = "xy")
+#Embedded grammar
+#Napoleons march on Russia
+library(ggplot2)
+path <- "C:/Users/Usuario/Documents/cursos/Data Analysis/R for Wickham/minard"
+setwd(path)
+troops <- read.table("troops.txt", header=T)
+cities <- read.table("cities.txt", header=T)
+temps <- read.table("temps.txt", header=T)
+temps$date <- as.Date(strptime(temps$date,"%d%b%Y"))
+plot_troops <- ggplot(troops, aes(long, lat)) + geom_path(aes(size = survivors, 
+                      color = direction, group = group))
+plot_troops
+plot_both <- plot_troops + geom_text(aes(label = city), size = 4,
+                                     data = cities)
+plot_both
+plot_polished <- plot_both + scale_size(c(1,10), breaks = c(1, 2, 3)*10^5,
+                labels = c(1, 2, 3)*10^5) + scale_color_manual(values = 
+                c("grey50", "red")) + xlab(NULL) + ylab(NULL)
+plot_polished
+#histogram
+ggplot(diamonds, aes(price)) + geom_histogram(binwidth = 50)
+qplot(price, data = diamonds, geom = "histogram", binwidth = 50)
+ggplot(diamonds, aes(price)) + geom_histogram(binwidth = 50) + 
+  layer(geom = "bar", stat = "bin", mapping = aes(y = ..count..))
+#polar coordinates
+ggplot(diamonds, aes(x = " ", fill = clarity)) + geom_bar(width = 1) +
+  coord_polar(theta = "y")
+ggplot(diamonds, aes(x = " ", fill = clarity)) + geom_bar(width = 1) +
+  coord_polar(theta = "x")
+summary(diamonds)
+ggplot(diamonds, aes(x = " ", fill = clarity)) + geom_bar(aes(clarity), width = 1) +
+  coord_polar(theta = "y")
+ggplot(diamonds, aes(x = " ", fill = clarity)) + geom_bar(aes(clarity), width = 1)
+ggplot(diamonds, aes(clarity)) + geom_bar()
