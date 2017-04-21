@@ -48,3 +48,83 @@ ggplot(diamonds, aes(x = " ", fill = clarity)) + geom_bar(aes(clarity), width = 
   coord_polar(theta = "y")
 ggplot(diamonds, aes(x = " ", fill = clarity)) + geom_bar(aes(clarity), width = 1)
 ggplot(diamonds, aes(clarity)) + geom_bar()
+library(tidyverse)
+library(knitr)
+library(broom)
+library(stringr)
+library(ggplot2)
+library(dplyr)
+#data
+head(mpg) %>%
+  kable(caption = "Dataset of automobiles")
+#mapping
+mpg %>%
+  select(displ, hwy) %>%
+  rename( x = displ, y = hwy)
+#stat
+mpg %>%
+  count(cyl)
+#geom
+  #point
+ggplot(mpg, aes(displ, hwy, color = class)) + geom_point() +
+  ggtitle("Autos")
+  #bar
+ggplot(mpg, aes(cyl)) + geom_bar(color = "yellow", fill = "red")
+#position
+count(mpg, class, cyl) %>%
+  ggplot(aes(cyl, n, fill = class)) + geom_bar(stat = "identity")
+count(mpg, class, cyl) %>%
+  ggplot(aes(cyl, n, fill = class)) + 
+    geom_bar(stat = "identity", position = "dodge")
+ggplot(mpg, aes(cyl, hwy)) + geom_point()
+ggplot(mpg, aes(cyl, hwy)) + geom_jitter()
+#scale
+ggplot(mpg, aes(displ, hwy, color = class)) + geom_point() +
+  guides(color = guide_legend(override.aes = list(size = 4)))
+#different color palete
+ggplot(mpg, aes(displ, hwy, color = class)) + geom_point() + 
+  scale_color_brewer(palette = "Set3") + guides(color = guide_legend(override.aes = list(size = 4)))
+#Diverging
+#BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn, Spectral
+#Qualitative
+#Accent, Dark2, Paired, Pastel1, Pastel2, Set1, Set2, Set3
+#Sequential
+#Blues, BuGn, BuPu, GnBu, Greens, Greys, Oranges, OrRd, PuBu, PuBuGn, PuRd, Purples, RdPu, Reds, YlGn, YlGnBu, YlOrBr, YlOrRd
+#Coordinate system
+x1 <- c(1, 10)
+y1 <- c(1, 5)
+p <- qplot(x1, y1, geom = "blank", xlab = NULL, ylab = NULL) +
+  theme_bw()
+p
+p + coord_trans(y = "log10")
+p + coord_polar()
+#Faceting
+ggplot(mpg, aes(displ, hwy))+geom_point()+facet_wrap(~class)
+#Defaults
+ggplot() + layer(data = mpg, mapping = aes(x = displ, y = hwy),
+  geom = "point", stat = "identity", position = "identity") +
+  scale_x_continuous() + scale_y_continuous() + coord_cartesian()
+#rewrite
+ggplot() + geom_point(data = mpg, mapping = aes(x = displ, y = hwy))
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + geom_point()
+ggplot(mpg, aes(displ, hwy)) + geom_point()
+ggplot(mpg, aes(displ, hwy)) + geom_point() + geom_smooth()
+#complicated map
+path <- "C:/Users/Usuario/Documents/cursos/Data Analysis/R for Wickham/minard"
+setwd(path)
+troops <- read.table("troops.txt", header=T)
+cities <- read.table("cities.txt", header=T)
+temps <- read.table("temps.txt", header=T)
+temps$date <- as.Date(strptime(temps$date,"%d%b%Y"))
+head(troops)
+head(cities)
+plot_troops <- ggplot(troops, aes(long, lat)) + geom_path(aes(size = survivors,
+                              color = direction, group = group))
+plot_troops
+plot_both <- plot_troops + geom_text(data = cities, aes(label = city), size = 4)
+plot_both
+plot_polished <- plot_both + scale_size(range = c(0, 12), breaks = c(10000, 20000, 30000),
+                                        labels = c("10.000", "20.000", "30.000")) +
+  scale_color_manual(values = c("tan", "grey50")) + coord_map() + 
+  labs(tittle = "Mapa de la capaña rusa de Napoleón 1812", x = NULL, y = NULL)
+plot_polished + theme_void() + theme(legend.position = "none")
