@@ -1,0 +1,88 @@
+library(tidyverse)
+library(nycflights13)
+names(flights)
+mutate(flights, velocidad = distance/air_time)
+vuelos <- flights
+vuelos$mes <- month.abb[vuelos$month] %>% factor(levels = month.abb)
+vuelos %>% count(mes, wt = distance)
+vuelos %>% count(mes, wt = air_time)
+library(ggplot2)
+ggplot(vuelos, aes(mes, air_time)) + geom_line(aes(group = origin), color = "grey50") +
+  geom_point(aes(color = origin))
+count(vuelos, carrier, wt = air_time)
+count(vuelos, carrier, vars = tailnum)
+count(vuelos, carrier, vars = tailnum)
+unique(vuelos$carrier)
+df <-  count(vuelos, vars = carrier)
+sum(df$n)
+count(vuelos, vars = carrier)
+str(vuelos)
+gather(vuelos, origin, dest, key = tramo, value = ciudad)
+gather(vuelos, month, day, key = fecha, value = cases)
+(mini_vuelosa <- vuelos[c(1: 5), c(10:14)])
+(mini_vuelosb <- vuelos[c(1: 5), c(13,14, 15:17)])
+gata <- gather(mini_vuelosa, origin, dest, key = tramo, value = ciudad)
+gatb <- gather(mini_vuelosb, origin, dest, key = tramo, value = ciudad)
+left_join(mini_vuelosa, mini_vuelosb)
+mina <- spread(gata, key = tramo, value = ciudad)
+mina
+g <- separate(vuelos, time_hour, into = c("time", "hour"), sep = " ", convert = T)
+str(g)
+g <- separate(vuelos, year, into = c("siglo", "año"), sep = 2, remove = F)
+unite(g, year, siglo, año, sep = "")
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+  separate(x, c("one", "two", "three"))
+stocks <- tibble(
+  year   = c(2015, 2015, 2015, 2015, 2016, 2016, 2016),
+  qtr    = c(   1,    2,    3,    4,    2,    3,    4),
+  return = c(1.88, 0.59, 0.35,   NA, 0.92, 0.17, 2.66))
+stocks
+stocks %>% spread(year, return)
+stocks %>% spread(year, return) %>% gather(year, return, `2015`:`2016`, na.rm =T)
+complete(stocks, year, qtr)
+table(is.na(vuelos$air_time))
+g <- vuelos %>% fill(air_time)
+table(is.na(g$air_time))
+which(is.na(vuelos$air_time)==T)
+#case study
+library(tidyr)
+who <- who
+summary(who)
+who1 <- who %>% gather(new_sp_m014:newrel_f65, key = "conteo", value = "valores", na.rm = T)
+library(dplyr)
+count(who1, conteo)
+unique(who1$conteo)
+library(stringr)
+who2 <- mutate(who1, conteo = str_replace(conteo, "newrel", "new_rel"))
+unique(who2$conteo)
+who3 <- separate(who2, conteo, c("new", "tipo", "sexo.edad"), sep = "_")
+head(who3)
+who4 <- select(who3, -new, -iso2, -iso3)
+head(who4)
+who5 <- separate(who4, sexo.edad, c("sexo", "edad"), sep = 1)
+head(who5)
+who %>%
+  gather(code, value, new_sp_m014:newrel_f65, na.rm = T) %>%
+  mutate(code = str_replace(code, "newrel", "new_rel")) %>%
+  separate(code, c("new", "var", "sexage")) %>%
+  select(-new, -iso2, -iso3) %>%
+  separate(sexage, c("sex", "age"), sep = 1)
+head(who5)
+table(who5$valores)
+library(ggplot2)
+names(who5)
+unique(who5$country)
+ggplot(who5, aes(tipo, valores)) + geom_bar(stat = "identity")
+ggplot(who5, aes(tipo, valores, color = sexo)) + geom_bar(stat = "count")
+ggplot(who5, aes(tipo, valores, color = sexo)) + geom_jitter()
+ggplot(who5) + geom_bar(aes(year, fill = valores))
+ggplot(who5) + geom_bar(aes(year, fill = valores), position = "dodge")
+ggplot(who5, aes(year, valores, fill = sexo)) + geom_bar(stat = "identity", 
+                position = "dodge") + scale_fill_discrete()
+group_by(who5, country, sexo) %>% summarise(total = sum(valores, na.rm = T)) %>% 
+  arrange(desc(total)) %>% head(50) %>%
+  ggplot(aes(reorder(country, -total), total, fill = sexo)) + geom_bar(stat = "identity", position = "dodge")+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+group_by(who5, country, tipo) %>% summarise(total = sum(valores, na.rm = T)) %>% 
+  arrange(desc(total)) %>% head(50) %>%
+  ggplot(aes(reorder(country, -total), total, fill = tipo)) + geom_bar(stat = "identity")+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+?geom_bar
