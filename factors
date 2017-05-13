@@ -1,0 +1,113 @@
+library(tidyverse)
+library(forcats)
+x1 <- c("Dec", "Apr", "Jan", "Mar")
+x2 <- c("Dec", "Apr", "Jam", "Mar")
+sort(x1)
+month_levels <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+y1 <- factor(c("Jan", "Apr", "Aug", "May"), levels = month_levels)
+y1 <- factor(x1, levels = month_levels)
+y1
+sort(y1)
+y2 <- factor(x2, levels = month_levels)
+y2
+sort(y2)
+f1 <- factor(x1, levels = unique(x1))
+f1
+f2 <- x1 %>% factor() %>% fct_inorder()
+f2
+table(gss_cat$race)
+gss_cat
+gss_cat %>% count(race)
+ggplot(gss_cat, aes(race)) + geom_bar()
+ggplot(gss_cat, aes(race)) + geom_bar() + scale_x_discrete(drop = F)
+View(gss_cat)
+gss_cat %>% count(rincome)
+ggplot(gss_cat, aes(rincome)) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+gss_cat %>% count(relig) %>% 
+  ggplot(aes(reorder(relig, -n), n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+gss_cat %>% count(partyid) %>% arrange(-n)
+gss_cat %>% filter(!denom %in% c("No answer", "Other", "Don't know", "Not applicable",
+                                 "No denomination")) %>% count(relig)
+gss_cat %>% count(relig, denom) %>% filter(!denom %in% c("No answer", "Other", 
+  "Don't know", "Not applicable", "No denomination")) %>%
+  ggplot(aes(relig, denom, size = n)) + geom_point() +
+  theme(axis.text.x = element_text(angle = 90))
+gss_cat %>% count(relig, denom) %>% filter(!denom %in% c("No answer", "Other", 
+  "Don't know", "Not applicable", "No denomination")) %>%
+  ggplot(aes(relig, fill = denom)) + geom_bar() +
+  theme(axis.text.x = element_text(angle = 90))
+rel.sum <- gss_cat %>% group_by(relig) %>% summarise(edad = mean(age, na.rm = T),
+                                                     tv = mean(tvhours, na.rm = T),
+                                                     total = n())
+ggplot(rel.sum, aes(tv, relig)) + geom_point()
+ggplot(rel.sum, aes(tv, fct_reorder(relig, tv))) + geom_point()
+ggplot(rel.sum, aes(tv, reorder(relig, -tv))) + geom_point()
+rel.sum %>% mutate(relig = fct_reorder(relig, tv)) %>% 
+  ggplot(aes(tv, relig)) + geom_point()
+edad.sum <- gss_cat %>% filter(!is.na(age)) %>% mutate( rango = cut_width(age, 5)) %>%
+group_by(rango) %>% summarise(tv = mean(tvhours, na.rm = T), total = n()) 
+ggplot(edad.sum, aes(tv, rango, group = 1)) + geom_point() + geom_line()
+ggplot(edad.sum, aes(rango, tv)) + geom_bar(stat = "identity")
+rinc.sum <- gss_cat %>% group_by(rincome) %>% summarise(edad = mean(age, na.rm = T),
+                                                        tv = mean(tvhours, na.rm = T),
+                                                        total = n()) 
+ggplot(rinc.sum, aes(edad, fct_reorder(rincome, edad))) + geom_point()
+ggplot(rinc.sum, aes(edad, reorder(rincome, -edad))) + geom_point()
+by.age <- gss_cat %>% filter(!is.na(age)) %>% group_by(age, marital) %>% count() %>%
+  mutate(prop = n / sum(n))
+ggplot(by.age, aes(age, prop, color = marital)) + geom_line(na.rm = T) + geom_smooth()
+ggplot(by.age, aes(age, prop, color = fct_reorder2(marital, age, prop))) + 
+  geom_line() + geom_smooth()
+gss_cat %>% mutate(marital = marital %>% fct_infreq() %>% fct_rev()) %>%
+  ggplot(aes(marital)) + geom_bar()
+gss_cat %>% count(marital) %>%
+  ggplot(aes(fct_reorder(marital, n), n)) + geom_bar(stat = "identity")
+fivenum(gss_cat$tvhours)
+filter(gss_cat, !is.na(tvhours)) %>% ggplot(aes(tvhours)) + geom_histogram(binwidth = 1)
+str(gss_cat)
+ggplot(gss_cat, aes(marital)) + geom_bar()
+levels(gss_cat$marital)
+levels(gss_cat$relig)
+count(gss_cat, partyid)
+mutate(gss_cat, partido = fct_recode(partyid, 
+                           "Republican"  = "Strong republican",
+                           "Republican"  = "Not str republican",
+                           "Independent" = "Ind,near rep",
+                           "Independent" = "Ind,near dem",
+                           "Democrat"    = "Not str democrat",
+                           "Democrat"    = "Strong democrat",
+                           "Other"       = "No answer",
+                           "Other"       = "Don't know",
+                           "Other"       = "Other party")) %>%  
+  count(partido)
+mutate(gss_cat, partyid = fct_recode(partyid,
+  "Republican"  = "Strong republican",
+  "Republican"  = "Not str republican",
+  "Independent" = "Ind,near rep",
+  "Independent" = "Ind,near dem",
+  "Democrat"    = "Not str democrat",
+  "Democrat"    = "Strong democrat")) %>%  
+count(partyid) %>% summarise(total = sum(n))
+ggplot(rel.sum, aes(tv, fct_reorder(relig, tv))) + geom_point()
+gss_cat %>% mutate(partyid = fct_collapse(partyid, 
+          Republican  =  c("Strong republican", "Not str republican"),
+          Independent = c("Ind,near rep", "Ind,near dem"),
+          Democrat    = c("Not str democrat", "Strong democrat"),
+          Otros = c("No answer", "Don't know", "Other party"))) %>% 
+  count(partyid) %>% mutate(prop = n / sum(n))
+gss_cat %>% mutate(relig = fct_lump(relig, 10)) %>% count(relig, sort = T) %>%
+  print(n = Inf)
+gss_cat %>% mutate(partido = fct_lump(partyid, 10)) %>% count(partido, sort = T)
+mutate(gss_cat, relig = fct_lump(relig, 5)) %>%
+  group_by(year, relig) %>% summarise(total = sum(n())) %>% 
+  mutate(prop = total/sum(total)) %>% 
+  ggplot(aes(year, prop, fill = relig )) + geom_bar(stat = "identity", position = "dodge")
+mutate(gss_cat, rin = fct_lump(rincome, 3)) %>% count(rin)
+gss_cat %>% mutate(relig = fct_lump(relig, 10)) %>% count(relig, sort = T)
+levels(gss_cat$rincome)
+gss_cat %>% mutate(ingreso = fct_collapse(rincome,
+                Otros = c("No answer", "Don't know", "Refused", "Not applicable"),        
+                Nivel1 = c("$5000 to 5999",  "$4000 to 4999", "$3000 to 3999",  "$1000 to 2999", "Lt $1000"),          
+                Nivel2 = c("$25000 or more", "$20000 - 24999"),
+                Nivel3 = c("$15000 - 19999", "$10000 - 14999", "$8000 to 9999", "$7000 to 7999", "$6000 to 6999"))) %>%
+      count(ingreso)
