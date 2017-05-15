@@ -1,0 +1,136 @@
+library(tidyverse)
+library(lubridate)
+library(nycflights13)
+today()
+now()
+ymd("2017-01-31")
+mdy("January 31st, 2017")
+dmy("31-Jan-2017")
+ymd(20170131)
+ymd_hms()
+flights %>% select(year, month, day, hour, minute) %>% 
+  mutate(salida = make_datetime(year, month, day, hour, minute))
+make.datetime.100 <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+View(flights)
+flights.dt <- flights %>% filter(!is.na(dep_time), !is.na(arr_time)) %>% 
+  mutate(dep_time = make.datetime.100(year, month, day, dep_time),
+         arr_time = make.datetime.100(year, month, day, arr_time),
+         sched_dep_time = make.datetime.100(year, month, day, sched_dep_time),
+         sched_arr_time = make.datetime.100(year, month, day, sched_arr_time)) %>%
+  select(origin, dest, ends_with("delay"), ends_with("time"))
+ggplot(flights.dt, aes(dep_time)) + geom_freqpoly(binwidth = 86400) #86400 seconds = 1 day
+ggplot(flights.dt, aes(sched_arr_time)) + geom_freqpoly(binwidth = 86400)
+filter(flights.dt, dep_time < ymd(20130102)) %>%
+  ggplot(aes(dep_time)) + geom_freqpoly(binwidth = 600) #600 s = 10 min
+ymd(c("2010-10-10", "bananas"))
+# %/% is integer division, divide and throw away the remainder. 
+# %% calculates the modulus (remainder of division)
+108 %/% 3
+108 %% 3
+108/3
+108 %/% 100
+d1 <- "January 1st, 2010"
+mdy(d1, locale = "English")
+d2 <- "2015-Mar-07"
+ymd(d2, locale = "English")
+d3 <- "06-Jun-2017"
+dmy(d3)
+d4 <- c("August 19 (2015)", "July 1 (2015)")
+mdy(d4, locale = "English")
+d5 <- "12/30/14"
+mdy(d5)
+#getting components
+datetime <- ymd_hms("2016-07-08 12:34:56")
+datetime <- ydm_hms("2016-07-08 12:34:56")
+year(datetime)
+month(datetime, label = T)
+day(datetime)
+mday(datetime)
+yday(datetime)
+wday(datetime, label = T)
+flights.dt %>% mutate(wday = wday(dep_time, label = T, abbr = F)) %>%
+  ggplot(aes(wday)) + geom_bar() + theme(axis.text.x = element_text(angle = 45))
+mutate(flights.dt, minute = minute(dep_time)) %>% group_by(minute) %>%
+  summarise(avg.delay = mean(arr_delay, na.rm = T), n = n()) %>%
+  ggplot(aes(minute, avg.delay)) + geom_line()
+sched.dep <- flights.dt %>%
+  mutate(minute = minute(sched_dep_time)) %>%
+  group_by(minute) %>%
+  summarise(avg.delay = mean(arr_delay, na.rm = T), n = n())
+ggplot(sched.dep, aes(minute, avg.delay)) + geom_line()
+ggplot(sched.dep, aes(minute, n)) + geom_line()
+#rounding
+flights.dt %>% count(week = floor_date(dep_time, "week")) %>%
+  ggplot(aes(week, n)) + geom_line()
+flights.dt %>% count(week = round_date(dep_time, "week")) %>%
+  ggplot(aes(week, n)) + geom_line()
+flights.dt %>% count(week = ceiling_date(dep_time, "week")) %>%
+  ggplot(aes(week, n)) + geom_line()
+#setting
+datetime <- ymd_hms("2016-7-8 12:34:56")
+datetime
+year(datetime) <- 2020
+datetime
+hour(datetime) <- hour(datetime) + 1
+datetime
+minute(datetime) <- minute(datetime) + 1
+second(datetime) <- second(datetime) + 10
+update(datetime, year = 2020, month = 2, mday = 1, hour = 2)
+ymd("2015-04-06") %>% update(mday = 30)
+ymd("2015-04-01") %>% update(mday = 31)
+ymd("2015-04-01") %>% update(hour = 48)
+ymd("2015-04-01") %>% update(hour = 500)
+flights.dt %>% mutate(dep_hour = update(dep_time, yday = 1)) %>% 
+  ggplot(aes(dep_hour)) + geom_freqpoly(binwidth = 300)
+mutate(flights.dt, hora = hour(dep_time)) %>% count(hora) %>% 
+  ggplot(aes(factor(hora), n)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text())
+flights.dt %>% mutate(time = hour(dep_time) * 100 + minute(dep_time),
+                      mon = as.factor(month(dep_time))) %>% select(time, mon) %>%
+  ggplot(aes(time, group = mon, color = mon)) + geom_freqpoly(binwidth = 100) +
+  scale_x_continuous(breaks = c(0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 
+                                1800, 2000, 2200, 2400))
+#normalized
+mutate(flights.dt, time = hour(dep_time) * 100 + minute(dep_time),
+       mon = as.factor(month(dep_time))) %>%
+  ggplot(aes(time, y = ..density.., group = mon, color = mon)) + geom_freqpoly(binwidth = 100)
+#ggplot(test_data, aes(date)) + 
+#  geom_line(aes(y = var0, colour = "var0")) + 
+#  geom_line(aes(y = var1, colour = "var1"))
+flights.dt$month <- month(flights.dt$dep_time, label = T) 
+flights.dt %>% 
+mutate(sched = hour(sched_dep_time)*60 + minute(sched_dep_time),
+        del = hour(dep_time)*60 + minute(dep_time), 
+        dif = del - sched, fin = dif - dep_delay) %>% group_by(month) %>% 
+        summarise(media = abs(mean(fin, na.rm = T))) %>%
+        ggplot(aes(month, media)) + geom_bar(stat = "identity")
+#  ggplot(aes(date(dep_time))) +
+#  geom_line(aes(y = dif, color = dif)) +
+#  geom_line(aes(y = dep_delay, color = dep_delay))
+flights.dt %>%
+  mutate(hora = hour(sched_dep_time)) %>%
+  group_by(hora) %>%
+  summarise(retraso = mean(dep_delay)) %>%
+  ggplot(aes(hora, retraso)) + geom_point() + geom_smooth()
+flights.dt %>% mutate(week = wday(sched_dep_time, label = T)) %>% group_by(week) %>% 
+  summarise(media.dep = mean(dep_delay), media.arr = mean(arr_delay, na.rm = T)) %>% 
+  ggplot(aes(week)) + geom_line(aes(y = media.dep, colour = "media.dep")) +
+  geom_line(aes(y = media.arr, colour = "media.arr"))
+#ggplot(test_data, aes(date)) + 
+#  geom_line(aes(y = var0, colour = "var0")) + 
+#  geom_line(aes(y = var1, colour = "var1"))
+flights.dt %>% mutate(week = wday(dep_time, label = T)) %>% group_by(week) %>% 
+  summarise(desviacion = sd(dep_delay, na.rm = T)) %>%
+  ggplot(aes(week, desviacion)) + geom_bar(stat = "identity")
+flights.dt %>% mutate(hora = hour(dep_time)) %>% count(hora) %>%
+  ggplot(aes(hora, n)) + geom_bar(stat = "identity")
+ggplot(diamonds, aes(carat)) + geom_density()
+ggplot(diamonds, aes(carat %% 1*100)) + geom_histogram(binwidth = 1)
+ggplot(flights, aes(sched_dep_time)) + geom_density()
+flights.dt %>%
+  mutate(temprano = dep_delay < 0,
+         minutos = minute(sched_dep_time)) %>%
+  group_by(minutos) %>%
+  summarise(media = mean(temprano)) %>%
+  ggplot(aes(minutos, media)) + geom_point()
