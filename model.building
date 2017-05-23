@@ -1,0 +1,181 @@
+library(tidyverse)
+library(modelr)
+options(na.action = na.warn)
+library(nycflights13)
+library(lubridate)
+ggplot(diamonds, aes(cut, price)) + geom_boxplot()
+ggplot(diamonds, aes(color, price)) + geom_boxplot()
+ggplot(diamonds, aes(clarity, price)) + geom_boxplot()
+ggplot(diamonds, aes(carat, price)) + geom_hex(bins = 50)
+diamonds2 <- diamonds %>% 
+  filter(carat <= 2.5) %>%
+  mutate(lprice = log2(price), lcarat = log2(carat))
+ggplot(diamonds2, aes(lcarat, lprice)) + geom_hex(bins = 50)
+diamonds2 <- diamonds %>% 
+  filter(carat <= 2.5) %>%
+  mutate(lprice = log(price), lcarat = log(carat))
+ggplot(diamonds2, aes(lcarat, lprice)) + geom_hex(bins = 50)
+mod <- lm(lprice ~ lcarat, data = diamonds2)
+grid <- diamonds2 %>% 
+  data_grid(carat = seq_range(carat, 20)) %>%
+  mutate(lcarat = log(carat)) %>%
+  add_predictions(mod, "lprice") %>% mutate(price = exp(lprice))
+ggplot(diamonds2, aes(carat, price)) + geom_hex(bins = 50) + 
+  geom_line(data = grid, color = "green", size = 2)
+diamonds2 <- diamonds2 %>% add_residuals(mod, "lresid")
+ggplot(diamonds2, aes(lcarat, lresid)) + geom_hex(bins = 50)
+ggplot(diamonds2, aes(cut, lresid)) + geom_boxplot()
+ggplot(diamonds2, aes(color, lresid)) + geom_boxplot()
+ggplot(diamonds2, aes(clarity, lresid)) + geom_boxplot()
+mod2 <- lm(lprice ~ lcarat + color + cut + clarity, data = diamonds2)
+grid <- diamonds2 %>% data_grid(cut, .model = mod2) %>% add_predictions(mod2)
+grid
+ggplot(grid, aes(cut, pred)) + geom_point()
+diamonds2 <-  diamonds2 %>% add_residuals(mod2, "lresid2")
+ggplot(diamonds2, aes(lcarat, lresid2)) + geom_hex(bins = 50)
+diamonds2 %>% filter(abs(lresid2) > 1) %>%
+  add_predictions(mod2) %>%
+  mutate(pred = round(exp(pred))) %>%
+  select(price, pred, carat:table, x:z) %>%
+  arrange(price)
+diamonds2 %>% add_predictions(mod2) %>%
+  add_residuals(mod2) %>%
+  summarise(sq_err = sqrt(mean(resid^2)),
+            abs_err = mean(abs(resid)),
+            p975_err = quantile(resid, 0.975),
+            p025_err = quantile(resid, 0.025))
+#daily flights
+vuelos <- flights
+vuelos$date <- date(flights$time_hour)
+vuelos <- count(vuelos, date)
+daily <- flights %>% mutate(date = make_date(year, month, day)) %>%
+  group_by(date) %>%
+  summarise(total = n())
+daily
+ggplot(daily, aes(date, total)) + geom_line()
+ggplot(daily, aes(date, total, color = wday(date))) + geom_line()
+#week day
+daily <- daily %>%
+  mutate(wday = wday(date, label = T))
+ggplot(daily, aes(wday, total)) + geom_boxplot()
+daily <-  daily %>%
+  mutate(month = month(date, label = T)) 
+ggplot(daily, aes(month, total)) + geom_boxplot()
+mod <- lm(total ~ wday, data = daily)
+summary(mod)
+grid <- daily %>% data_grid(wday) %>% add_predictions(mod, "total")
+ggplot(daily, aes(wday, total)) + geom_boxplot() + 
+  geom_point(data = grid, color = "red", size = 3)
+daily <- daily %>% add_residuals(mod)
+ggplot(daily, aes(date, resid)) + geom_line() + 
+  geom_ref_line(h = 0, colour = "red", size = 1) + 
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")
+ggplot(daily, aes(date, resid, color = wday)) + geom_line() + 
+  geom_ref_line(h = 0, colour = "red", size = 1) + 
+  scale_x_date(date_breaks = "1 month", date_labels = "%B")
+filter(daily, resid < -100)
+ggplot(daily, aes(date, resid)) + geom_ref_line(h = 0, colour = "red", size = 1) +
+  geom_line() + geom_smooth(se = F, span = 0.2)
+daily %>% filter(wday == "Sat") %>%
+  ggplot(aes(date, total)) + geom_point() + geom_line() + 
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")
+ggplot(daily, aes(date, total, color = wday)) + geom_line() + geom_point()
+#school terms
+daily$term <- daily$date %>% cut(breaks = ymd(20130101, 20130605, 20130825, 20140101),
+                                 labels = c("spring", "summer", "fall"))
+daily %>% filter(wday == "Sat") %>% 
+  ggplot(aes(date, total, color = term)) +
+  geom_point() + geom_line() + 
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")
+ggplot(daily, aes(wday, total, color = term)) + geom_boxplot()
+mod1 <- lm(total ~ wday, data = daily)
+mod2 <- lm(total ~ wday*term, data = daily)
+daily %>%
+  gather_residuals(without_term = mod1, with_term = mod2) %>%
+  ggplot(aes(date, resid, color = model)) + geom_ref_line(h= 0) +
+  geom_line(alpha = 0.75)
+grid <- daily %>%
+  data_grid(wday, term) %>%
+  add_predictions(mod2, "total")
+ggplot(daily, aes(wday, total)) + geom_boxplot() + 
+  geom_point(data = grid, colour = "red") + facet_wrap(~ term)
+library(MASS)
+mod3 <- rlm(total ~ wday * term, data = daily)
+daily %>% add_residuals(mod3, "resid") %>%
+  ggplot(aes(date, resid)) + geom_hline(yintercept = 0, size = 1, color = "red") +
+  geom_line()
+#alternative approach
+library(splines)
+mod <- rlm(total ~ wday*ns(date, 5), data = daily)
+daily %>% 
+  data_grid(wday, date = seq_range(date, n =13)) %>%
+  add_predictions(mod) %>%
+  ggplot(aes(date, pred, color = wday)) + geom_line() + geom_point()
+daily %>% 
+  data_grid(wday, date = seq_range(date, n =13)) %>%
+  add_predictions(mod) %>%
+  ggplot(aes(date, pred, color = wday)) + geom_line() + geom_point()
+diario <- daily %>%
+  add_predictions(mod) 
+ggplot(diario, aes(date)) + geom_line(aes(y = pred, color = "red")) +
+  geom_line(aes(y = total, color = "blue"))
+??ns
+diario <- add_residuals(diario, mod)
+ggplot(diario, aes(date, resid)) + geom_line()
+#Excercises
+daily %>% 
+  top_n(3, resid)
+#3
+daily$sat <- ifelse(daily$wday == "Sat", apply(daily[, c("wday", "term")], 1, paste, collapse = "-"),as.character(daily$wday))
+count(daily, sat)
+mod4 <- lm(total ~ sat, data = daily)
+daily %>%
+gather_residuals(sat_term = mod4, all_interact = mod2) %>%
+  ggplot(aes(date, resid, colour = model)) + geom_line()
+glance(mod4)
+daily <- daily %>%
+  mutate(hol = case_when(.$date %in% ymd(c(20130101, # new years
+                                         20130121, # mlk
+                                         20130218, # presidents
+                                         20130527, # memorial
+                                         20130704, # independence
+                                         20130902, # labor
+                                         20131028, # columbus
+                                         20131111, # veterans
+                                         20131128, # thanksgiving
+                                         20131225)) ~ "holiday",
+                         TRUE ~ as.character(.$sat)))
+mod5 <- lm(total ~ hol, data = daily)
+daily %>%
+add_residuals(mod5) %>%
+  ggplot(aes(date, resid)) + geom_line()
+daily %>% 
+  spread_residuals(mod5) %>%
+  arrange(desc(abs(resid))) %>%
+  slice(1:10) %>%
+  dplyr::select(date, hol, resid)
+flights %>%
+  mutate(date = make_date(year, month, day), wday = wday(date, label = T)) %>%
+  group_by(wday) %>% 
+  summarise(dist.mean = mean(distance), dist.median = median(distance)) %>%
+  ggplot(aes(wday, dist.mean)) + geom_point()
+flights %>%
+  mutate(date = make_date(year, month, day), 
+         wday = wday(date, label = T)) %>%
+  group_by(wday, hour) %>%
+  summarise(dist.mean = mean(distance), dist.median = median(distance)) %>%
+  ggplot(aes(hour, dist.mean, colour = wday)) + geom_point() + geom_line()
+flights %>%
+  mutate(horario = hour * 100 + minute,
+         wday = wday(make_date(year, month, day), label = T)) %>%
+  group_by(wday, horario) %>%
+  summarise(n = n()) %>%
+  ggplot(aes(wday, horario)) + geom_tile(aes(fill = n))
+===
+monday.first <- function(x){
+  forcats::fct_relevel(x, levels(x)[-1])
+}
+daily <- daily %>%
+  mutate(wday = wday(date, label = T))
+ggplot(daily, aes(monday.first(wday), total)) + geom_boxplot() + 
+  labs(x = "Day of Week", y = "Number of flights")
