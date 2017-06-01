@@ -1,0 +1,206 @@
+library(ggplot2)
+library(tidyverse)
+library(modelr)
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(color = class)) + geom_smooth(se = F) +
+  labs(title = "Eficiencia energética decrece con el tamaño del motor", 
+       subtitle = "Autos deportivos son la excepción, porque son livianos",
+       caption = "Fuente: fueleconomy.gov",
+       x = "Desplazamiento del motor",
+       y = "Consumo de gasolina en carretera",
+       colour = "Tipo de automóvil")
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(color = class)) + geom_smooth(se = F) +
+  labs(title = "Eficiencia energética decrece con el tamaño del motor", 
+       subtitle = "Autos deportivos son la excepción, porque son livianos",
+       caption = "Fuente: fueleconomy.gov",
+       x = quote(sum(x[i]^2, i == 1,n)),
+       y = quote(alpha + beta+ frac(delta, theta)),
+       colour = "Tipo de automóvil")
+View(mpg)
+ggplot(mpg, aes(class, hwy)) + geom_boxplot() + coord_flip()
+  labs(tittle = "El consumo de gasolina no esta relacionado con el tipo de automóvil",
+       subtitle = "Los subcompact son muy variables en su consumo de gasolina",
+       caption = "Fuente = Tidyverse Packages")
+ggplot(mpg, aes(displ, hwy, colour = class)) +
+  geom_point(aes(colour = class)) +
+  geom_smooth(method = "lm", se = F) +
+  labs(title = "Eficiencia energética decrece con el tamaño del motor", 
+       subtitle = "Autos deportivos son la excepción, porque son livianos",
+       caption = "Fuente: fueleconomy.gov",
+       x = "Desplazamiento del motor",
+       y = "Consumo de gasolina en carretera",
+       colour = "Tipo de automóvil")
+mod <- lm(hwy ~ class, data = mpg)
+mpg %>% add_residuals(mod) %>%
+  ggplot(aes(displ, resid)) +
+  geom_point() + geom_smooth(method = "lm", se = F) +
+  labs(title = "Eficiencia energética decrece con el tamaño del motor", 
+       subtitle = "Autos deportivos son la excepción, porque son livianos",
+       caption = "Fuente: fueleconomy.gov",
+       x = "Desplazamiento del motor",
+       y = "Residuos del modelo",
+       colour = "Tipo de automóvil")
+#Annotations
+best <- mpg %>% group_by(class) %>% filter(row_number(desc(hwy)) == 1)
+best
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(colour = class)) + 
+  geom_text(aes(label = model), data = best)
+new<- head(arrange(mpg, desc(year)),10)
+ggplot(mpg, aes(hwy, displ)) + geom_point(aes(colour = drv)) +
+  geom_label(aes(label = manufacturer), data = new, nudge_y = 2, alpha = 0.5)
+library(ggrepel)
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(color = class)) + 
+  geom_point(size = 3, shape = 1, data = best) +
+  geom_label_repel(aes(label = model), data = best)
+ext <- filter(mpg, hwy > 40 | hwy < 13)
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(color = class)) +
+  geom_point(size = 3, shape = 1, data = ext) +
+  geom_label_repel(aes(label = model), data = ext)
+class.avg <- mpg %>%
+  group_by(class) %>%
+  summarise(
+    displ = median(displ),
+    hwy = median(hwy))
+ggplot(mpg, aes(displ, hwy, colour = class)) + 
+  geom_label_repel(aes(label = class), data = class.avg, size = 6, label.size = 0,
+                   segment.color = NA) + geom_point() + theme(legend.position = "none") +
+  geom_point(size = 3, shape = 1, data = class.avg)
+ggplot(mpg, aes(displ, hwy, colour = class)) + 
+  geom_label_repel(aes(label = class), data = class.avg, size = 6, label.size = 0) + 
+  geom_point() + theme(legend.position = "none")
+label <- mpg %>% summarise(displ = max(displ), hwy = max(hwy), 
+                           label = "Incremento en el tamaño del motor \nesta relacionado con la disminución de la eficiencia en gasolina")
+ggplot(mpg, aes(displ, hwy)) + geom_point() + 
+  geom_text(aes(label = label), data = label, vjust = "top", hjust = "right")
+label <- tibble(displ = Inf, hwy = Inf, label = "Incremento del tamaño del motor \n esta relacionado con la menor eficiencia en el consumo de gasolina")
+ggplot(mpg, aes(displ, hwy)) + geom_point() + geom_text(aes(label = label), data = label,
+                                                        vjust = "top", hjust = "right")
+library(stringr)
+"Incremento del tamaño del motor \n esta relacionado con la menor eficiencia en el consumo de gasolina" %>%
+  str_wrap(width = 40) %>%
+  writeLines()
+# hjust = "left", "center", "right"
+# vjust = "top", "center", "bottom"
+ggplot(mpg, aes(hwy, displ, color = class)) + geom_point() + 
+  geom_hline(yintercept = 4, size = 0, color = "red") +
+  geom_vline(xintercept = 30, size = 0, color = "tomato")
+ggplot(mpg, aes(hwy, displ, color = class)) + geom_point() + 
+  geom_rect(xmin = 20, xmax = 40, ymin = 3, ymax = 6)
+ggplot(mpg, aes(hwy, displ, color = class)) + geom_point() + 
+  geom_segment(aes(x = 40, xend = 20, y = 6, yend = 3), 
+               arrow = arrow(length = unit(2, "cm")))
+#exercise
+label <- tribble(
+  ~displ, ~hwy, ~label, ~vjust, ~hjust,
+  Inf,  Inf,    "Top right", "top", "right",
+  Inf, -Inf,    "Bottom right", "bottom", "right",
+  -Inf,  Inf,    "Top left", "top", "left",
+  -Inf, -Inf,    "Bottom left", "bottom", "left")
+ggplot(mpg, aes(displ, hwy)) + geom_point() + 
+  geom_text(aes(label = label, vjust = vjust, hjust = hjust), data = label)
+ggplot(mpg, aes(displ, hwy)) + geom_point() + 
+  annotate("text", x = Inf, y = Inf, label = "Eficiencia en combustible", vjust = "top", hjust = "right")
+#facets
+label <- tibble(displ = Inf, hwy = Inf, label = "Incremento del tamaño de motor \nse relaciona con el consumo de gasolina")
+cinco <- filter(mpg, cyl == 5)
+ggplot(mpg, aes(displ, hwy)) + geom_point() + 
+  geom_text(aes(label = label), data = label, vjust = "top", hjust = "right", size = 2) +
+  geom_label_repel(aes(label = manufacturer), data = cinco) +
+  facet_wrap(~ cyl)
+label <- tibble(displ = Inf, hwy = Inf, cyl = "5", label = "Incremento del tamaño de motor \nse relaciona con el consumo de gasolina")
+ggplot(mpg, aes(displ, hwy)) + geom_point() + 
+  geom_text(aes(label = label), data = label, vjust = "top", hjust = "right", size = 2) +
+  facet_wrap(~ cyl)
+label <- tibble(displ = Inf, hwy = Inf, cyl = unique(mpg$cyl), label = str_c("Label for ", cyl, " cyl"))
+ggplot(mpg, aes(displ, hwy)) + geom_point() + 
+  geom_text(aes(label = label), data = label, vjust = "top", hjust = "right", size = 3) +
+  facet_wrap(~ cyl)
+#scales
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(colour = class))
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(colour = class)) + scale_x_continuous() +
+  scale_y_continuous() + scale_color_discrete()
+#axis
+ggplot(mpg, aes(displ, hwy)) + geom_point() + 
+  scale_y_continuous(breaks = seq(15,40, by = 5)) +
+  scale_x_continuous(breaks = seq(0.5, 7, by = 0.5))
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(colour = class)) +
+  scale_x_continuous(labels = NULL) + scale_y_continuous(labels = NULL)
+presidential %>%
+  mutate(id = 33 + row_number()) %>%
+  ggplot(aes(start, id)) + geom_point() + geom_segment(aes(xend = end, yend = id)) +
+  scale_x_date(breaks = presidential$start, date_labels = "%Y")
+presidential %>%
+  mutate(id = 33 + row_number()) %>%
+  ggplot(aes(start, id)) + geom_point() + geom_segment(aes(xend = end, yend = id)) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  theme(axis.text.x = element_text(angle = 90))
+#legend layout
+base <- ggplot(mpg, aes(displ, hwy)) + geom_point(aes(colour = class))
+base + theme(legend.position = "left") #top, bottom, right, none
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point(aes(color = class)) + 
+  geom_smooth(se = FALSE) + 
+  theme(legend.position = "bottom") +
+  guides(colour = guide_legend(nrow = 1, override.aes = list(size = 4)))
+#replacing
+ggplot(diamonds, aes(carat, price)) + geom_bin2d()
+ggplot(diamonds, aes(log(carat), log(price))) + geom_bin2d()
+ggplot(diamonds, aes(carat, price)) + geom_bin2d() + scale_x_log10() + scale_y_log10()
+#color
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(color = drv)) + 
+  scale_colour_brewer(palette = "Set1")
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(color = drv, shape = drv)) + 
+  scale_colour_brewer(palette = "YlOrRd")
+presidential %>%
+  mutate(id = 33 + row_number()) %>%
+  ggplot(aes(start, id, colour = party)) + 
+  geom_point() + 
+  geom_segment(aes(xend = end, yend = id)) + 
+  scale_color_manual(values = c(Republican = "red", Democratic = "blue")) +
+  scale_x_date(date_breaks = "5 years", date_labels = "%y") +
+  geom_label(aes(label = name), size = 7, label.size = 1) + theme(legend.position = "none")
+library(viridis)
+library(methods)
+ggplot(mpg, aes(displ, hwy)) + geom_hex() + coord_fixed()
+ggplot(mpg, aes(displ, hwy)) + geom_hex() + scale_fill_viridis()
+df <- tibble(x = rnorm(10000), y = rnorm(10000))
+ggplot(df, aes(x, y)) + geom_hex() + coord_fixed() + scale_fill_viridis()
+#excercises
+ggplot(df, aes(x, y)) + geom_hex() + coord_fixed() + 
+  scale_fill_gradient(low = "green", high = "red")
+base + geom_smooth(se = F) + 
+  labs(x = "Cilindrada", y = "Consumo de gasolina", colour = "Modelo")
+library(stringr)
+mutate(presidential, id = 33 + row_number(),name.id = str_c(name, " (", id, ")"), 
+       name.id = factor(name.id, levels = name.id)) %>%
+  ggplot(aes(start, name.id, colour = party)) + 
+  geom_point() + 
+  geom_segment(aes(xend = end, yend = name.id)) + 
+  scale_color_manual(values = c(Republican = "red", Democratic = "blue")) +
+  scale_x_date(date_breaks = "4 years", date_labels = "%y")
+ggplot(diamonds, aes(carat, price)) + geom_point(aes(colour = cut), alpha = 1/20) +
+theme(legend.position = "bottom") + 
+  guides(colour = guide_legend(nrow = 1, override.aes = list(alpha = 1)))
+#zooming
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(color = class)) + geom_smooth() +
+  coord_cartesian(xlim = c(5, 7), ylim = c(10, 30))
+mpg %>%
+  filter(displ >= 5, displ <= 7, hwy >= 10, hwy <= 30) %>%
+  ggplot(aes(displ, hwy)) + geom_point(aes(color = class)) + geom_smooth()
+suv <- filter(mpg, class == "suv")
+compact <- filter(mpg, class == "compact")
+ggplot(suv, aes(displ, hwy, colour = drv)) + geom_point()
+ggplot(suv, aes(displ, hwy, colour = drv)) + geom_point()
+x.scale <- scale_x_continuous(limits = range(mpg$displ))
+y.scale <- scale_y_continuous(limits = range(mpg$hwy))
+col.scale <- scale_colour_discrete(limits = unique(mpg$drv))
+ggplot(suv, aes(displ, hwy, colour = drv)) + geom_point() +
+  x.scale + y.scale + col.scale
+ggplot(compact, aes(displ, hwy, colour = drv)) + geom_point() +
+  x.scale + y.scale + col.scale
+#themes
+library(ggthemes)
+ggplot(mpg, aes(displ, hwy)) + geom_point(aes(color = class)) +
+  geom_smooth(se = F) + theme_classic()
+ggplot(mpg, aes(displ, hwy)) + geom_point()
+ggsave("my.plot.pdf")
+ggsave("my.plot.jpg")
